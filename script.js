@@ -1,0 +1,10 @@
+const $=s=>document.querySelector(s), $$=s=>document.querySelectorAll(s);
+const heroPhoto=$('.hero-photo');
+heroPhoto.outerHTML='<video class="hero-video" autoplay muted loop playsinline preload="metadata" poster="assets/target-paper.jpg" aria-label="Shooting range training footage"><source src="assets/shooting-range.mp4" type="video/mp4"></video>';
+$('.menu').onclick=()=>$('nav').classList.toggle('open');
+window.addEventListener('scroll',()=>$('.nav').classList.toggle('scrolled',scrollY>30));
+const observer=new IntersectionObserver(entries=>entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add('visible');if(e.target.classList.contains('counter')) count(e.target)}}),{threshold:.16});$$('.reveal').forEach(el=>observer.observe(el));
+function count(el){if(el.dataset.done)return;el.dataset.done=1;const end=+el.dataset.count,start=performance.now();function step(t){let n=Math.min((t-start)/1400,1);el.firstChild.nodeValue=Math.floor(end*(1-Math.pow(1-n,3)))+(n===1?'+':'');if(n<1)requestAnimationFrame(step)}requestAnimationFrame(step)}
+$$('.gallery-filters button').forEach(button=>button.onclick=()=>{$$('.gallery-filters button').forEach(b=>b.classList.remove('selected'));button.classList.add('selected');$$('.gallery-item').forEach(item=>item.style.display=button.dataset.filter==='all'||item.dataset.category===button.dataset.filter?'block':'none')});
+const lightbox=$('.lightbox');$$('.gallery-item').forEach(item=>item.onclick=()=>{lightbox.querySelector('img').src=item.dataset.image;lightbox.showModal()});lightbox.querySelector('button').onclick=()=>lightbox.close();
+$('#admission-form').onsubmit=async e=>{e.preventDefault();const form=e.currentTarget,status=$('.form-status'),data=Object.fromEntries(new FormData(form));status.textContent='Sending your application…';try{const r=await fetch('/api/admissions',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});if(!r.ok)throw Error();status.textContent='Thank you — your enquiry has been received.';form.reset()}catch{status.textContent='Enquiry ready. Please contact us on WhatsApp to complete your booking.'}};
