@@ -1,5 +1,5 @@
 /* Admin dashboard. Uses only the Supabase publishable key from admin-config.js. */
-const cfg = window.GILL_SUPABASE_CONFIG;
+let cfg = window.GILL_SUPABASE_CONFIG || JSON.parse(localStorage.getItem('gill_supabase_config') || 'null');
 const $ = selector => document.querySelector(selector);
 const $$ = selector => document.querySelectorAll(selector);
 const specs = {
@@ -16,11 +16,25 @@ const escape = value => String(value ?? '').replace(/[&<>'"]/g, char => ({'&':'&
 
 function boot() {
   if (!cfg?.url || !cfg?.publishableKey || cfg.url.includes('YOUR_PROJECT')) {
-    $('#login-status').textContent = 'Add your Supabase URL and publishable key to admin-config.js first.';
+    $('#connection-setup').hidden = false;
+    $('#login-form').hidden = true;
+    $('#login-status').textContent = '';
     return;
   }
+  $('#connection-setup').hidden = true;
+  $('#login-form').hidden = false;
   client = window.supabase.createClient(cfg.url, cfg.publishableKey, { auth: { persistSession: true, autoRefreshToken: true } });
   client.auth.getSession().then(({ data }) => data.session && openApp());
+}
+function saveConnection(event) {
+  event.preventDefault();
+  const form = new FormData(event.currentTarget);
+  const url = String(form.get('url') || '').trim().replace(/\/$/, '');
+  const publishableKey = String(form.get('publishableKey') || '').trim();
+  if (!/^https:\/\/[^/]+\.supabase\.co$/.test(url) || publishableKey.length < 20) return toast('Enter a valid Supabase project URL and publishable key.');
+  cfg = { url, publishableKey };
+  localStorage.setItem('gill_supabase_config', JSON.stringify(cfg));
+  boot();
 }
 async function openApp() {
   const { data, error } = await client.from('admin_users').select('user_id').limit(1);
@@ -87,4 +101,4 @@ async function loadEnquiries() {
 }
 async function deleteRow(table, id, refresh) { if (!confirm('Delete this item permanently?')) return; const { error } = await client.from(table).delete().eq('id',id); toast(error ? 'Delete failed.' : 'Item deleted.'); refresh(); }
 
-$('#login-form').onsubmit = signIn; $('#settings-form').onsubmit = saveSettings; $('#upload-form').onsubmit = uploadImage; $('#resource-select').onchange = event => { currentResource = event.target.value; renderEditor(); }; $('#new-record').onclick = () => renderEditor(); $('#enquiry-select').onchange = loadEnquiries; $$('.nav-item').forEach(button => button.onclick = () => showView(button.dataset.view)); $$('[data-go]').forEach(button => button.onclick = () => showView(button.dataset.go)); $('#signout').onclick = async () => { await client.auth.signOut(); location.reload(); }; boot();
+$('#login-form').onsubmit = signIn; $('#connection-form').onsubmit = saveConnection; $('#settings-form').onsubmit = saveSettings; $('#upload-form').onsubmit = uploadImage; $('#resource-select').onchange = event => { currentResource = event.target.value; renderEditor(); }; $('#new-record').onclick = () => renderEditor(); $('#enquiry-select').onchange = loadEnquiries; $$('.nav-item').forEach(button => button.onclick = () => showView(button.dataset.view)); $$('[data-go]').forEach(button => button.onclick = () => showView(button.dataset.go)); $('#signout').onclick = async () => { await client.auth.signOut(); location.reload(); }; boot();
