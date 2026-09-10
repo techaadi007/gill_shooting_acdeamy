@@ -27,6 +27,8 @@ drop policy if exists "admins read own admin record" on public.admin_users;
 create policy "admins read own admin record" on public.admin_users for select to authenticated using ((select auth.uid()) = user_id);
 drop policy if exists "admins manage academy settings" on public.academy_settings;
 create policy "admins manage academy settings" on public.academy_settings for all to authenticated using ((select public.is_admin())) with check ((select public.is_admin()));
+drop policy if exists "public reads academy settings" on public.academy_settings;
+create policy "public reads academy settings" on public.academy_settings for select to anon, authenticated using (true);
 
 -- Add least-privilege admin CRUD permissions to the existing website tables.
 do $$

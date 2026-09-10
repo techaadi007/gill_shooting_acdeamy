@@ -11,19 +11,16 @@ const specs = {
   achievements: [['title','Title'],['description','Description','textarea'],['achievement_date','Achievement date','date'],['image_url','Image URL'],['sort_order','Display order','number']],
 };
 let client, currentResource = 'programs', editingId = null, accessCheckInProgress = false;
+const isDashboardPage = document.body.dataset.page === 'dashboard';
 const toast = message => { const node = $('#toast'); node.textContent = message; node.classList.add('show'); setTimeout(() => node.classList.remove('show'), 3600); };
 const escape = value => String(value ?? '').replace(/[&<>'"]/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char]));
 
 function boot() {
   if (!cfg?.url || !cfg?.publishableKey || cfg.url.includes('YOUR_PROJECT')) {
-    $('#connection-setup').hidden = false;
-    $('#login-form').hidden = true;
-    $('#login-status').textContent = '';
+    if (!isDashboardPage) { $('#connection-setup').hidden = false; $('#login-form').hidden = true; $('#login-status').textContent = ''; }
     return;
   }
-  $('#connection-setup').hidden = true;
-  $('#login-form').hidden = false;
-  $('#login-view').hidden = false;
+  if (!isDashboardPage) { $('#connection-setup').hidden = true; $('#login-form').hidden = false; $('#login-view').hidden = false; }
   $('#app-view').hidden = true;
   client = window.supabase.createClient(cfg.url, cfg.publishableKey, { auth: { persistSession: true, autoRefreshToken: true } });
   client.auth.getSession().then(({ data }) => data.session && openApp());
@@ -42,6 +39,7 @@ function saveConnection(event) {
   boot();
 }
 function lockApp(message = '') {
+  if (isDashboardPage) { location.replace('admin.html'); return; }
   $('#app-view').hidden = true;
   $('#login-view').hidden = false;
   $('#login-form').hidden = false;
@@ -61,7 +59,8 @@ async function openApp() {
     return;
   }
   accessCheckInProgress = false;
-  $('#login-view').hidden = true; $('#app-view').hidden = false; showView('dashboard');
+  if (!isDashboardPage) { location.replace('admin-dashboard.html'); return; }
+  $('#app-view').hidden = false; showView('dashboard');
 }
 async function signIn(event) {
   event.preventDefault(); const form = new FormData(event.currentTarget); const status = $('#login-status'); status.textContent = 'Signing in…';
@@ -123,4 +122,4 @@ async function loadEnquiries() {
 }
 async function deleteRow(table, id, refresh) { if (!confirm('Delete this item permanently?')) return; const { error } = await client.from(table).delete().eq('id',id); toast(error ? 'Delete failed.' : 'Item deleted.'); refresh(); }
 
-$('#login-form').onsubmit = signIn; $('#connection-form').onsubmit = saveConnection; $('#settings-form').onsubmit = saveSettings; $('#upload-form').onsubmit = uploadImage; $('#resource-select').onchange = event => { currentResource = event.target.value; renderEditor(); }; $('#new-record').onclick = () => renderEditor(); $('#enquiry-select').onchange = loadEnquiries; $$('.nav-item').forEach(button => button.onclick = () => showView(button.dataset.view)); $$('[data-go]').forEach(button => button.onclick = () => showView(button.dataset.go)); $('#signout').onclick = async () => { await client.auth.signOut(); location.reload(); }; boot();
+$('#login-form') && ($('#login-form').onsubmit = signIn); $('#connection-form') && ($('#connection-form').onsubmit = saveConnection); $('#settings-form') && ($('#settings-form').onsubmit = saveSettings); $('#upload-form') && ($('#upload-form').onsubmit = uploadImage); $('#resource-select') && ($('#resource-select').onchange = event => { currentResource = event.target.value; renderEditor(); }); $('#new-record') && ($('#new-record').onclick = () => renderEditor()); $('#enquiry-select') && ($('#enquiry-select').onchange = loadEnquiries); $$('.nav-item').forEach(button => button.onclick = () => showView(button.dataset.view)); $$('[data-go]').forEach(button => button.onclick = () => showView(button.dataset.go)); $('#signout') && ($('#signout').onclick = async () => { await client.auth.signOut(); location.replace('admin.html'); }); boot();
