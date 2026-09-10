@@ -9,12 +9,14 @@ window.addEventListener('scroll', () => $('.nav')?.classList.toggle('scrolled', 
 const observer = new IntersectionObserver(entries => entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); if (e.target.classList.contains('counter')) count(e.target); } }), {threshold:.16});
 const observe = root => root.querySelectorAll?.('.reveal').forEach(el => observer.observe(el)); observe(document);
 function count(el) { if (el.dataset.done) return; el.dataset.done = '1'; const end = +el.dataset.count, start = performance.now(); const step = t => { const n = Math.min((t - start) / 1400, 1); el.firstChild.nodeValue = Math.floor(end * (1 - Math.pow(1 - n, 3))) + (n === 1 ? '+' : ''); if (n < 1) requestAnimationFrame(step); }; requestAnimationFrame(step); }
-const group = category => ['10m_range','50m_range'].includes(category) ? category : ['25m_range'].includes(category) ? 'range' : ['events','competitions'].includes(category) ? 'event' : category;
+const group = category => ['10m_range','25m_range','50m_range'].includes(category) ? category : ['events','competitions'].includes(category) ? 'event' : category;
 const galleryFilters = $('.gallery-filters');
 if (galleryFilters && !galleryFilters.querySelector('[data-filter="50m_range"]')) galleryFilters.insertAdjacentHTML('afterbegin','<button data-filter="50m_range">50M Rifle</button>');
-const galleryHeading = $('.gallery .section-heading h2'); if (galleryHeading) galleryHeading.textContent = '10M & 50M Rifle Shooting';
-const initialGallery = $('#gallery-grid'), fiftyMetreTemplate = $('#fifty-metre-gallery');
+if (galleryFilters && !galleryFilters.querySelector('[data-filter="25m_range"]')) galleryFilters.insertAdjacentHTML('afterbegin','<button data-filter="25m_range">25M Rifle</button>');
+const galleryHeading = $('.gallery .section-heading h2'); if (galleryHeading) galleryHeading.textContent = '10M, 25M & 50M Rifle Shooting';
+const initialGallery = $('#gallery-grid'), fiftyMetreTemplate = $('#fifty-metre-gallery'), twentyFiveMetreTemplate = $('#twenty-five-metre-gallery');
 if (initialGallery && fiftyMetreTemplate) initialGallery.insertAdjacentHTML('beforeend', fiftyMetreTemplate.innerHTML);
+if (initialGallery && twentyFiveMetreTemplate) initialGallery.insertAdjacentHTML('beforeend', twentyFiveMetreTemplate.innerHTML);
 const localGalleryMarkup = initialGallery?.innerHTML || '';
 function wireGallery() {
   $$('.gallery-filters button').forEach(button => button.onclick = () => { $$('.gallery-filters button').forEach(x => x.classList.remove('selected')); button.classList.add('selected'); $$('#gallery-grid .gallery-item').forEach(item => item.style.display = button.dataset.filter === 'all' || item.dataset.category === button.dataset.filter ? 'block' : 'none'); });
