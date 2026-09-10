@@ -10,7 +10,7 @@ const specs = {
   testimonials: [['person_name','Name'],['relationship','Relationship'],['rating','Rating (1–5)','number'],['review','Review','textarea'],['photo_url','Photo URL'],['sort_order','Display order','number']],
   achievements: [['title','Title'],['description','Description','textarea'],['achievement_date','Achievement date','date'],['image_url','Image URL'],['sort_order','Display order','number']],
 };
-let client, currentResource = 'programs', editingId = null;
+let client, currentResource = 'programs', editingId = null, accessCheckInProgress = false;
 const toast = message => { const node = $('#toast'); node.textContent = message; node.classList.add('show'); setTimeout(() => node.classList.remove('show'), 3600); };
 const escape = value => String(value ?? '').replace(/[&<>'"]/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char]));
 
@@ -23,8 +23,13 @@ function boot() {
   }
   $('#connection-setup').hidden = true;
   $('#login-form').hidden = false;
+  $('#login-view').hidden = false;
+  $('#app-view').hidden = true;
   client = window.supabase.createClient(cfg.url, cfg.publishableKey, { auth: { persistSession: true, autoRefreshToken: true } });
   client.auth.getSession().then(({ data }) => data.session && openApp());
+  client.auth.onAuthStateChange((event, session) => {
+    if (event === 'SIGNED_OUT' || !session) lockApp();
+  });
 }
 function saveConnection(event) {
   event.preventDefault();
@@ -36,15 +41,32 @@ function saveConnection(event) {
   localStorage.setItem('gill_supabase_config', JSON.stringify(cfg));
   boot();
 }
+function lockApp(message = '') {
+  $('#app-view').hidden = true;
+  $('#login-view').hidden = false;
+  $('#login-form').hidden = false;
+  if (message) $('#login-status').textContent = message;
+}
 async function openApp() {
-  const { data, error } = await client.from('admin_users').select('user_id').limit(1);
-  if (error || !data?.length) { await client.auth.signOut(); $('#login-status').textContent = 'This account is not an academy administrator.'; return; }
+  if (accessCheckInProgress) return;
+  accessCheckInProgress = true;
+  const { data: userData, error: userError } = await client.auth.getUser();
+  const userId = userData?.user?.id;
+  if (userError || !userId) { accessCheckInProgress = false; lockApp('Your session is invalid. Please sign in again.'); return; }
+  const { data, error } = await client.from('admin_users').select('user_id').eq('user_id', userId).maybeSingle();
+  if (error || !data || data.user_id !== userId) {
+    await client.auth.signOut();
+    accessCheckInProgress = false;
+    lockApp('This account does not have administrator access.');
+    return;
+  }
+  accessCheckInProgress = false;
   $('#login-view').hidden = true; $('#app-view').hidden = false; showView('dashboard');
 }
 async function signIn(event) {
   event.preventDefault(); const form = new FormData(event.currentTarget); const status = $('#login-status'); status.textContent = 'Signing in…';
   const { error } = await client.auth.signInWithPassword({ email: form.get('email'), password: form.get('password') });
-  if (error) { status.textContent = 'Unable to sign in. Check your email and password.'; return; }
+  if (error) { lockApp('Unable to sign in. Check your email and password.'); return; }
   await openApp();
 }
 function showView(view) {
