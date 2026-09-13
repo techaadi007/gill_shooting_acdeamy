@@ -35,7 +35,7 @@ async function loadContent() {
   const [programs, coaches, gallery, settings] = await Promise.all([db.from('programs').select('*').eq('is_active',true).order('sort_order'),db.from('coaches').select('*').eq('is_active',true).order('sort_order'),db.from('gallery').select('*').order('sort_order'),db.from('academy_settings').select('setting_key,setting_value')]);
   // Event cards are curated on the page so the academy's nine official disciplines remain visible.
   if (!coaches.error && coaches.data?.length) $('#coach-grid').innerHTML = coaches.data.map(c => `<article class="coach reveal visible"><img src="${esc(c.photo_url || 'assets/target-paper.jpg')}" alt="${esc(c.full_name)}"><div><h3>${esc(c.full_name)}</h3><p>${esc(c.role)}${c.specialization?' · '+esc(c.specialization):''}</p></div></article>`).join('');
-  if (!gallery.error && gallery.data?.length) { $('#gallery-grid').innerHTML = localGalleryMarkup + gallery.data.map((g,i) => `<button class="gallery-item ${i===0?'tall':i===2?'wide':''}" data-category="${group(g.category)}" data-image="${esc(g.image_url)}" style="background-image:url('${esc(g.image_url)}')"><span>${esc(g.title)}</span></button>`).join(''); wireGallery(); }
+  // Each range now has its own dedicated gallery page.
   if (!settings.error && settings.data?.length) { const v = Object.fromEntries(settings.data.map(x=>[x.setting_key,x.setting_value])); const p=$$('.contact-points span'); if(v.phone&&p[0])p[0].textContent=`☎ ${v.phone}`; if(v.email&&p[1])p[1].textContent=`✉ ${v.email}`; if(v.address&&p[2])p[2].textContent=`⌖ ${v.address}`; $$('a[href*="wa.me/"]').forEach(a=>{if(v.whatsapp)a.href=`https://wa.me/${v.whatsapp.replace(/\D/g,'')}`}); }
 }
 loadContent();
