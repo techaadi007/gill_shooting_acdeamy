@@ -23,10 +23,17 @@ function wireGallery() {
   $$('#gallery-grid .gallery-item').forEach(item => item.onclick = () => { const box = $('.lightbox'); box.querySelector('img').src = item.dataset.image; box.showModal(); });
 }
 $('.lightbox button')?.addEventListener('click', () => $('.lightbox').close()); wireGallery();
+const bookingModal = $('.booking-modal');
+$$('.button[href="#admission"], .nav .tiny').forEach(button => button.addEventListener('click', event => { event.preventDefault(); bookingModal?.showModal(); }));
+$('.booking-close')?.addEventListener('click', () => bookingModal?.close()); $('.booking-cancel')?.addEventListener('click', () => bookingModal?.close());
+bookingModal?.addEventListener('click', event => { if (event.target === bookingModal) bookingModal.close(); });
+$('.booking-form')?.addEventListener('submit', event => { event.preventDefault(); const form=event.currentTarget; if (!form.checkValidity()) return form.reportValidity(); $('.booking-status').textContent='Booking request ready. Our academy team will contact you shortly.'; form.reset(); });
+$$('.range-card,.coach').forEach(card => card.addEventListener('pointermove', event => { if (matchMedia('(pointer: fine)').matches) { const r=card.getBoundingClientRect(),x=(event.clientX-r.left)/r.width-.5,y=(event.clientY-r.top)/r.height-.5; card.style.transform=`perspective(800px) rotateX(${y*-4}deg) rotateY(${x*5}deg) translateY(-7px)`; } }));
+$$('.range-card,.coach').forEach(card => card.addEventListener('pointerleave', () => card.style.transform=''));
 async function loadContent() {
   if (!db) return;
   const [programs, coaches, gallery, settings] = await Promise.all([db.from('programs').select('*').eq('is_active',true).order('sort_order'),db.from('coaches').select('*').eq('is_active',true).order('sort_order'),db.from('gallery').select('*').order('sort_order'),db.from('academy_settings').select('setting_key,setting_value')]);
-  if (!programs.error && programs.data?.length) $('#program-grid').innerHTML = programs.data.map((p,i) => { const f = Array.isArray(p.features) ? p.features : []; return `<article class="program ${i===1?'featured':''} reveal visible"><span>${String(i+1).padStart(2,'0')}</span><h3>${esc(p.title)}</h3><p>${esc(p.description)}</p><ul>${f.map(x=>`<li>${esc(x)}</li>`).join('')}<li>${esc(p.duration || (p.fee ? 'Fee: ₹'+p.fee : ''))}</li></ul><a class="text-link" href="#admission">Enquire Now →</a></article>`; }).join('');
+  // Event cards are curated on the page so the academy's nine official disciplines remain visible.
   if (!coaches.error && coaches.data?.length) $('#coach-grid').innerHTML = coaches.data.map(c => `<article class="coach reveal visible"><img src="${esc(c.photo_url || 'assets/target-paper.jpg')}" alt="${esc(c.full_name)}"><div><h3>${esc(c.full_name)}</h3><p>${esc(c.role)}${c.specialization?' · '+esc(c.specialization):''}</p></div></article>`).join('');
   if (!gallery.error && gallery.data?.length) { $('#gallery-grid').innerHTML = localGalleryMarkup + gallery.data.map((g,i) => `<button class="gallery-item ${i===0?'tall':i===2?'wide':''}" data-category="${group(g.category)}" data-image="${esc(g.image_url)}" style="background-image:url('${esc(g.image_url)}')"><span>${esc(g.title)}</span></button>`).join(''); wireGallery(); }
   if (!settings.error && settings.data?.length) { const v = Object.fromEntries(settings.data.map(x=>[x.setting_key,x.setting_value])); const p=$$('.contact-points span'); if(v.phone&&p[0])p[0].textContent=`☎ ${v.phone}`; if(v.email&&p[1])p[1].textContent=`✉ ${v.email}`; if(v.address&&p[2])p[2].textContent=`⌖ ${v.address}`; $$('a[href*="wa.me/"]').forEach(a=>{if(v.whatsapp)a.href=`https://wa.me/${v.whatsapp.replace(/\D/g,'')}`}); }
